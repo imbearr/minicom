@@ -922,6 +922,7 @@ static void init_iconv(const char *remote_charset)
 {
   char local_charset[40];
   char *tmp;
+  int local_is_utf8;
 
   if (!remote_charset)
     return;
@@ -939,6 +940,8 @@ static void init_iconv(const char *remote_charset)
   if (strchr(tmp, '.'))
     tmp = strchr(tmp, '.') + 1;
 
+  local_is_utf8 = (strncasecmp(tmp,"UTF-8",5) == 0 || strncasecmp(tmp,"UTF8",4) == 0) ? 1 : 0;
+
   snprintf(local_charset, sizeof(local_charset),
            "%s//TRANSLIT", tmp);
   local_charset[sizeof(local_charset) - 1] = 0;
@@ -950,11 +953,12 @@ static void init_iconv(const char *remote_charset)
     }
 
   iconv_rem2local = iconv_open(local_charset, remote_charset);
-  if (iconv_rem2local != (iconv_t)-1)
-    iconv_enabled = 1;
-  else
+  if (iconv_rem2local != (iconv_t)-1) {
+    iconv_enabled = 1 + local_is_utf8;
+  } else {
     printf("Activating iconv failed with: %s(%d)\n",
            strerror(errno), errno);
+  }
 }
 
 void do_iconv(char **inbuf, size_t *inbytesleft,
@@ -1299,7 +1303,7 @@ int main(int argc, char **argv)
     /* init VT */
     vt_set(-1, -1, -1, -1, -1, -1, 1, -1, -1);
 
-  /* Avoid fraude ! */	
+  /* Avoid fraude ! */
   for (s = use_port; *s; s++)
     if (*s == '/')
       *s = '_';

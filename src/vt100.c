@@ -885,7 +885,7 @@ static void output_c(const char c)
     fputc(c, capfp);
 }
 
-void vt_out(int ch)
+void vt_out(wchar_t ch)
 {
   static unsigned char last_ch;
   int f;
@@ -1032,7 +1032,7 @@ void vt_out(int ch)
         else
           mc_wputc(vt_win, wc);
       } else {
-        mc_wputc(vt_win, c);
+        mc_wputc(vt_win, ch);
       }
       break;
     case 1: /* ESC seen */

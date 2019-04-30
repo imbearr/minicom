@@ -625,7 +625,7 @@ void timer_update(void)
 }
 
 /*
- * Show the status line 
+ * Show the status line
  */
 void show_status(void)
 {
@@ -678,6 +678,9 @@ static void showtemp(void)
   show_status();
   tempst = 1;
 }
+
+static wchar_t last_wchr = 0;
+static unsigned char last_chr_len = 0;
 
 /*
  * The main terminal loop:
@@ -814,8 +817,31 @@ dirty_goto:
           vt_out(u > 9 ? 'a' + (u - 10) : '0' + u);
           vt_out(c > 9 ? 'a' + (c - 10) : '0' + c);
           vt_out(' ');
-        } else
-          vt_out(*ptr++);
+        } else {
+          if (using_iconv() == 2) { // iconv used and local charset is utf8
+            if (!last_chr_len) {
+                unsigned char test_chr = *ptr;
+                last_chr_len = (test_chr < 0x80) ? 1 : ((test_chr >> 5) & 3);
+                if (!last_chr_len) {  // test need for garbage case
+                  last_chr_len = 1;
+                }
+            }
+          } else {
+            last_chr_len = 1;
+          }
+          for (;;) {
+            last_wchr <<= 8;
+            last_wchr |= (wchar_t)(unsigned long int)(unsigned char)(*ptr++);
+            if (--last_chr_len == 0 || blen == 0) {
+              break;
+            }
+            blen--;
+          };
+          if (!last_chr_len) {
+            vt_out(last_wchr);
+            last_wchr = 0;
+          }
+        }
         if (zauto && zsig[zpos] == 0) {
           dirflush = 1;
           keyboard(KSTOP, 0);

@@ -189,6 +189,18 @@ static int outchar(int c)
 }
 
 /*
+ * Output a raw wide character to the screen
+ */
+static int outwchar(wchar_t c)
+{
+  if (c & 0xff000000) outchar(c >> 24);
+  if (c & 0xffff0000) outchar(c >> 16);
+  if (c & 0xffffff00) outchar(c >> 8);
+  outchar(c);
+  return 0;
+}
+
+/*
  * Output a raw string to the screen.
  */
 static void outstr(const char *s)
@@ -380,7 +392,9 @@ static void _write(wchar_t c, int doit, int x, int y, char attr, char color)
         _setattr(attr, color);
       }
       x0 = x; y0 = y; attr0 = attr; color0 = color; c0 = c;
-      if (using_iconv() || (attr & XA_ALTCHARSET) != 0)
+      if (using_iconv()) {
+        outwchar(c);
+      } else if ((attr & XA_ALTCHARSET) != 0)
         outchar((char)c);
       else {
         char buf[MB_LEN_MAX];
